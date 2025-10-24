@@ -14,6 +14,7 @@ import os
 def create_age_gender_model():
     """
     TensorFlow Hub의 사전 훈련된 모델을 기반으로 나이/성별 예측 모델을 생성합니다.
+    최신 TensorFlow 버전 호환성을 고려합니다.
     """
     print("사전 훈련된 모델을 로딩 중...")
     
@@ -22,11 +23,12 @@ def create_age_gender_model():
     model_url = "https://tfhub.dev/google/tf2-preview/mobilenet_v2/feature_vector/4"
     
     try:
-        # Hub 모델 로드
+        # Hub 모델 로드 - 최신 버전 호환성 고려
         hub_layer = hub.KerasLayer(model_url, input_shape=(224, 224, 3), trainable=False)
         
-        # 모델 구성
+        # 모델 구성 - InputLayer 명시적 정의로 호환성 문제 해결
         model = tf.keras.Sequential([
+            tf.keras.layers.InputLayer(input_shape=(224, 224, 3), name='input_layer'),
             hub_layer,
             Dropout(0.3),
             Dense(512, activation='relu'),
@@ -59,6 +61,7 @@ def create_age_gender_model():
 def create_alternative_model():
     """
     TensorFlow Hub를 사용할 수 없을 때의 대안 모델
+    최신 TensorFlow 버전 호환성을 고려합니다.
     """
     from tensorflow.keras.applications import MobileNetV2
     
@@ -83,7 +86,9 @@ def create_alternative_model():
     # 나이/성별 예측 출력 (성별 2개 + 나이구간 9개 = 11개 클래스)
     outputs = Dense(11, activation='softmax', name='age_gender_output')(x)
     
-    model = Model(inputs=base_model.input, outputs=outputs)
+    # 명시적 InputLayer로 호환성 문제 해결
+    inputs = tf.keras.layers.Input(shape=(224, 224, 3), name='input_layer')
+    model = Model(inputs=inputs, outputs=outputs)
     
     model.compile(
         optimizer=Adam(learning_rate=0.001),
@@ -113,21 +118,39 @@ def create_dummy_training_data():
 def save_model_for_inference(model, model_path='age_gender_model.h5'):
     """
     추론용 모델을 저장합니다.
+    최신 TensorFlow 버전 호환성을 고려합니다.
     """
     try:
-        # H5 형식으로 저장
-        model.save(model_path)
+        # H5 형식으로 저장 (compile=False로 호환성 문제 해결)
+        model.save(model_path, save_format='h5', include_optimizer=False)
         print(f"모델이 {model_path}에 저장되었습니다.")
         
         # 모델 정보 출력
         print(f"모델 입력 크기: {model.input_shape}")
         print(f"모델 출력 크기: {model.output_shape}")
         
-        return True
+        # 저장된 모델 테스트 로딩
+        try:
+            test_model = tf.keras.models.load_model(model_path, compile=False)
+            print("저장된 모델 테스트 로딩 성공!")
+            return True
+        except Exception as test_e:
+            print(f"저장된 모델 테스트 로딩 실패: {test_e}")
+            return False
         
     except Exception as e:
         print(f"모델 저장 실패: {e}")
-        return False
+        print("대안 저장 방법을 시도합니다...")
+        
+        # 대안 저장 방법
+        try:
+            # SavedModel 형식으로 저장
+            model.save(model_path.replace('.h5', '_savedmodel'), save_format='tf')
+            print(f"모델이 SavedModel 형식으로 저장되었습니다.")
+            return True
+        except Exception as e2:
+            print(f"대안 저장 방법도 실패: {e2}")
+            return False
 
 def main():
     """

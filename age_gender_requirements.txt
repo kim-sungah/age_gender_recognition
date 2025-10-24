@@ -35,9 +35,10 @@ requests-oauthlib>=1.3.1
 rsa>=4.9
 six>=1.16.0
 # update tensorboard and TensorFlow to versions that support Python 3.11
-tensorboard>=2.13.0
-tensorflow-cpu-aws==2.13.0
-tensorflow-estimator==2.13.0
+# 최신 TensorFlow 버전으로 업데이트하여 호환성 문제 해결
+tensorboard>=2.15.0
+tensorflow>=2.15.0
+tensorflow-estimator>=2.15.0
 termcolor>=2.3.0
 typing-extensions==4.5.0
 urllib3>=2.0.4

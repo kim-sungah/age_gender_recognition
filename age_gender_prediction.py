@@ -59,9 +59,39 @@ parser.add_argument(
     '-fl', '--flip', help='Flip incoming video signal', action='store_true')
 args = parser.parse_args()
 
-# Load age/gender prediction model
+# Load age/gender prediction model with custom objects to handle compatibility issues
 # Note: Replace 'age_gender_model.h5' with your actual model file
-model = load_model('age_gender_model.h5')
+model = None
+
+# 방법 1: 표준 로딩
+try:
+    model = load_model('age_gender_model.h5', compile=False)
+    print("모델이 성공적으로 로드되었습니다.")
+except Exception as e:
+    print(f"표준 로딩 실패: {e}")
+    
+    # 방법 2: TensorFlow 직접 로딩
+    try:
+        import tensorflow as tf
+        model = tf.keras.models.load_model('age_gender_model.h5', compile=False)
+        print("TensorFlow 직접 로딩 성공!")
+    except Exception as e2:
+        print(f"TensorFlow 직접 로딩 실패: {e2}")
+        
+        # 방법 3: SavedModel 형식 로딩 시도
+        try:
+            model = tf.keras.models.load_model('age_gender_model_savedmodel', compile=False)
+            print("SavedModel 형식 로딩 성공!")
+        except Exception as e3:
+            print(f"SavedModel 로딩 실패: {e3}")
+            
+            # 방법 4: 모델 재생성 안내
+            print("\n모든 로딩 방법이 실패했습니다.")
+            print("해결 방법:")
+            print("1. 모델을 다시 생성하세요: python create_age_gender_model.py")
+            print("2. 또는 기존 모델 파일을 삭제하고 새로 생성하세요")
+            print("3. TensorFlow 버전을 확인하세요: pip install tensorflow>=2.15.0")
+            sys.exit(1)
 
 # prevents openCL usage and unnecessary logging messages
 cv2.ocl.setUseOpenCL(False)
