@@ -1,8 +1,3 @@
-"""
-Age and Gender Prediction System for Raspberry Pi with nCube Integration
-Real-time face detection and age/gender prediction using AIoT framework
-"""
-
 import argparse
 import os
 import sys
@@ -28,23 +23,16 @@ HOST = '127.0.0.1'
 PORT = 3105
 
 # nCube 연결 (선택적)
-try:
-    upload_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    upload_client.connect((HOST, PORT))
-    ncube_connected = True
-    print("nCube 서버에 연결되었습니다.")
-except ConnectionRefusedError:
-    ncube_connected = False
-    print("nCube 서버에 연결할 수 없습니다. 로컬 테스트 모드로 실행합니다.")
+upload_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+upload_client.connect((HOST, PORT))
 
 def send_cin(con,msg) :
-    if ncube_connected:
-        cin = {'ctname': con, 'con': msg}
-        msg = (json.dumps(cin) + '<EOF>')
-        upload_client.sendall(msg.encode('utf-8'))
-        print (f"send {msg} to {con}")
-    else:
-        print(f"[로컬 테스트] {con}: {msg}")
+    cin = {'ctname': con, 'con': msg}
+    msg = (json.dumps(cin) + '<EOF>')
+    upload_client.sendall(msg.encode('utf-8'))
+        
+    print (f"send {msg} to {con}")
+
 
 if sys.platform == 'linux':
     from gpiozero import CPUTemperature
@@ -59,39 +47,7 @@ parser.add_argument(
     '-fl', '--flip', help='Flip incoming video signal', action='store_true')
 args = parser.parse_args()
 
-# Load age/gender prediction model with custom objects to handle compatibility issues
-# Note: Replace 'age_gender_model.h5' with your actual model file
-model = None
-
-# 방법 1: 표준 로딩
-try:
-    model = load_model('age_gender_model.h5', compile=False)
-    print("모델이 성공적으로 로드되었습니다.")
-except Exception as e:
-    print(f"표준 로딩 실패: {e}")
-    
-    # 방법 2: TensorFlow 직접 로딩
-    try:
-        import tensorflow as tf
-        model = tf.keras.models.load_model('age_gender_model.h5', compile=False)
-        print("TensorFlow 직접 로딩 성공!")
-    except Exception as e2:
-        print(f"TensorFlow 직접 로딩 실패: {e2}")
-        
-        # 방법 3: SavedModel 형식 로딩 시도
-        try:
-            model = tf.keras.models.load_model('age_gender_model_savedmodel', compile=False)
-            print("SavedModel 형식 로딩 성공!")
-        except Exception as e3:
-            print(f"SavedModel 로딩 실패: {e3}")
-            
-            # 방법 4: 모델 재생성 안내
-            print("\n모든 로딩 방법이 실패했습니다.")
-            print("해결 방법:")
-            print("1. 모델을 다시 생성하세요: python create_age_gender_model.py")
-            print("2. 또는 기존 모델 파일을 삭제하고 새로 생성하세요")
-            print("3. TensorFlow 버전을 확인하세요: pip install tensorflow>=2.15.0")
-            sys.exit(1)
+model = load_model('age_gender_model.h5', compile=False)
 
 # prevents openCL usage and unnecessary logging messages
 cv2.ocl.setUseOpenCL(False)
@@ -184,7 +140,7 @@ while True:
         cv2.putText(frame, result_text, (x_max+20, y_max-60), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2, cv2.LINE_AA)
 
         # Send to nCube
-        send_cin("age_gender", f"{gender_label},{age_label}")
+        send_cin("age_gender_prediction", f"{gender_label},{age_label}")
     
     cv2.imshow("Frame", frame)
 
