@@ -1,28 +1,17 @@
-import argparse
+import time
 import os
 import sys
-import time
-
 import cv2
 import numpy as np
-from tensorflow.keras.layers import (Conv2D, Dense, Dropout, Flatten,
-                                     MaxPooling2D)
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Dropout, Flatten
-from tensorflow.keras.layers import Conv2D
-from tensorflow.keras.layers import MaxPooling2D
-import os
-import sys
+import argparse
 import subprocess
-
 import socket, json
-
 from tensorflow.keras.models import load_model
 
 HOST = '127.0.0.1'
 PORT = 3105
 
-# nCube 연결 (선택적)
+# nCube 연결
 upload_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 upload_client.connect((HOST, PORT))
 
@@ -56,7 +45,7 @@ cv2.ocl.setUseOpenCL(False)
 gender_dict = {0: "Male", 1: "Female"}
 
 # age ranges for age prediction (if using classification)
-age_ranges = ["0-2", "3-9", "10-19", "20-29", "30-39", "40-49", "50-59", "60-69", "70+"]
+age_ranges = ["0-2", "3-9", "10-19", "20-29", "30-39", "40-49", "50-59", "60-69", "70-79", "80-89", "90+"]
 
 def get_gpu_temp():
     temp = subprocess.check_output(['vcgencmd measure_temp | egrep -o \'[0-9]*\.[0-9]*\''],
@@ -122,14 +111,14 @@ while True:
         # Make prediction
         prediction = model.predict(input_img)
         
-        # 모델 출력 처리 (11개 클래스: 성별 2개 + 나이구간 9개)
-        # 출력 형식: [Male_prob, Female_prob, age_0-2_prob, age_3-9_prob, ..., age_70+_prob]
+        # 모델 출력 처리 (13개 클래스: 성별 2개 + 나이구간 11개)
+        # 출력 형식: [Male_prob, Female_prob, age_0-2_prob, age_3-9_prob, ..., age_90+_prob]
         prediction_probs = prediction[0]
         
         # 성별 예측 (첫 2개 값)
         gender_pred = int(np.argmax(prediction_probs[:2]))
         
-        # 나이 구간 예측 (나머지 9개 값)
+        # 나이 구간 예측 (나머지 11개 값)
         age_pred = int(np.argmax(prediction_probs[2:]))
         
         gender_label = gender_dict[gender_pred]
@@ -149,3 +138,4 @@ while True:
 
 cap.release()
 cv2.destroyAllWindows()
+
